@@ -1,4 +1,3 @@
-
 # This is an auto-generated Django model module.
 # You'll have to do the following manually to clean this up:
 #   * Rearrange models' order
@@ -9,7 +8,6 @@
 
 from django.db import models
 from django.contrib.auth.hashers import make_password
-
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)

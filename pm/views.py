@@ -1,15 +1,17 @@
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import User
-
+# from django.contrib.auth import authenticate, login
 
 # 간단한 인덱스 뷰
 def index(request):
     return JsonResponse({'message': 'Welcome to the API'})
 
-
+# 회원가입 API - 아이디, 이름, 비밀번호
+    # 2024.06.14
+    # 중복 사용자 처리 대해서 논의 필요
+    # 그 외 정상 장독 확인 완료
 @csrf_exempt
 def signup(request):
     if request.method == 'POST':
@@ -34,3 +36,5 @@ def signup(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+# 로그인 API - 아이디, 비밀번호
