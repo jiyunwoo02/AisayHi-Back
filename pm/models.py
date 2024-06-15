@@ -6,8 +6,9 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 
@@ -153,7 +154,7 @@ class Goods(models.Model):
 
 class Orders(models.Model):
     order_id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey('User', models.DO_NOTHING)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     item_id = models.IntegerField()
     itemcnt = models.IntegerField(db_column='itemCnt')  # Field name made lowercase.
     itemprice = models.IntegerField(db_column='itemPrice')  # Field name made lowercase.
@@ -176,17 +177,63 @@ class Situation(models.Model):
         db_table = 'situation'
 
 
+class UserManager(BaseUserManager):
+    def create_user(self, login_id, username, userpwd, **extra_fields):
+        if not login_id:
+            raise ValueError('The Login ID must be set')
+        user = self.model(login_id=login_id, username=username, **extra_fields)
+        user.userpwd = make_password(userpwd)
+        user.set_password(userpwd)  # Set the password using the built-in method
+        user.save(using=self._db)
+        return user
 
-class User(models.Model):
+    def create_superuser(self, login_id, username, userpwd, **extra_fields):
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
+
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+
+        return self.create_user(login_id, username, userpwd, **extra_fields)
+
+class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     login_id = models.CharField(unique=True, max_length=50)
     username = models.CharField(max_length=20)
     userpwd = models.CharField(max_length=128)
 
+    # Required fields
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    # Add related_name to avoid clashes
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',
+        blank=True,
+        help_text=('The groups this user belongs to. A user will get all permissions '
+                   'granted to each of their groups.'),
+        related_query_name='user',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_query_name='user',
+    )
+
     USERNAME_FIELD = 'login_id'
+    REQUIRED_FIELDS = ['username']
+
+    objects = UserManager()
 
     def save(self, *args, **kwargs):
-        self.userpwd = make_password(self.userpwd)
+        if not self.pk:
+            self.userpwd = make_password(self.userpwd)
         super().save(*args, **kwargs)
 
     def check_password(self, raw_password):
@@ -195,3 +242,6 @@ class User(models.Model):
     class Meta:
         managed = True
         db_table = 'user'
+
+    # Add password field with a default value
+    password = models.CharField(max_length=128, default=make_password('default_password'))
