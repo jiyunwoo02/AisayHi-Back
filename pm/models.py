@@ -139,13 +139,13 @@ class DjangoSession(models.Model):
 
 class Goods(models.Model):
     goods_id = models.AutoField(primary_key=True)
-    goodsname = models.CharField(db_column='goodsName', max_length=30)  # Field name made lowercase.
+    goodsname = models.CharField(db_column='goodsName', max_length=30)
     category = models.CharField(max_length=30)
     brand = models.CharField(max_length=30)
-    goodsdesc = models.CharField(db_column='goodsDesc', max_length=150, blank=True, null=True)  # Field name made lowercase.
-    goodsimg = models.TextField(db_column='goodsImg', blank=True, null=True)  # Field name made lowercase.
+    goodsdesc = models.CharField(db_column='goodsDesc', max_length=150, blank=True, null=True)
+    goodsimg = models.TextField(db_column='goodsImg', blank=True, null=True)
     price = models.IntegerField()
-    discountprice = models.IntegerField(db_column='discountPrice', blank=True, null=True)  # Field name made lowercase.
+    discountprice = models.IntegerField(db_column='discountPrice', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -154,11 +154,11 @@ class Goods(models.Model):
 
 class Orders(models.Model):
     order_id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
     item_id = models.IntegerField()
-    itemcnt = models.IntegerField(db_column='itemCnt')  # Field name made lowercase.
-    itemprice = models.IntegerField(db_column='itemPrice')  # Field name made lowercase.
-    totalprice = models.IntegerField(db_column='totalPrice')  # Field name made lowercase.
+    itemcnt = models.IntegerField(db_column='itemCnt')
+    itemprice = models.IntegerField(db_column='itemPrice')
+    totalprice = models.IntegerField(db_column='totalPrice')
 
     class Meta:
         managed = False
@@ -167,7 +167,7 @@ class Orders(models.Model):
 
 class Situation(models.Model):
     situation_id = models.AutoField(primary_key=True)
-    situationcategory = models.CharField(db_column='situationCategory', max_length=50)  # Field name made lowercase.
+    situationcategory = models.CharField(db_column='situationCategory', max_length=50)
     situation = models.CharField(max_length=30)
     keyword = models.CharField(max_length=30)
     headline = models.CharField(unique=True, max_length=50)
@@ -183,7 +183,7 @@ class UserManager(BaseUserManager):
             raise ValueError('The Login ID must be set')
         user = self.model(login_id=login_id, username=username, **extra_fields)
         user.userpwd = make_password(userpwd)
-        user.set_password(userpwd)  # Set the password using the built-in method
+        user.set_password(userpwd)
         user.save(using=self._db)
         return user
 
@@ -233,7 +233,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.userpwd = make_password(self.userpwd)
+            self.userpwd = make_password(self.userpwd) # 비밀번호 해시화
         super().save(*args, **kwargs)
 
     def check_password(self, raw_password):
