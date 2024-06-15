@@ -7,7 +7,9 @@
 # Feel free to rename the models, but don't rename db_table values or field names.
 
 from django.db import models
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
@@ -181,10 +183,14 @@ class User(models.Model):
     username = models.CharField(max_length=20)
     userpwd = models.CharField(max_length=128)
 
+    USERNAME_FIELD = 'login_id'
+
     def save(self, *args, **kwargs):
-        # 비밀번호 해시화
         self.userpwd = make_password(self.userpwd)
-        super(User, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.userpwd)
 
     class Meta:
         managed = True

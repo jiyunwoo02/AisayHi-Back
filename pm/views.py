@@ -46,7 +46,7 @@ def login_api(request):
             if not login_id or not userpwd:
                 return JsonResponse({'error': 'Missing fields'}, status=400)
 
-            user = authenticate(request, username=login_id, password=userpwd)
+            user = authenticate(request, login_id=login_id, password=userpwd)
 
             if user is not None:
                 login(request, user)
