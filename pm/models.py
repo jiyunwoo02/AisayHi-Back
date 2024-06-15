@@ -6,8 +6,11 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
@@ -136,13 +139,13 @@ class DjangoSession(models.Model):
 
 class Goods(models.Model):
     goods_id = models.AutoField(primary_key=True)
-    goodsname = models.CharField(db_column='goodsName', max_length=30)  # Field name made lowercase.
+    goodsname = models.CharField(db_column='goodsName', max_length=30)
     category = models.CharField(max_length=30)
     brand = models.CharField(max_length=30)
-    goodsdesc = models.CharField(db_column='goodsDesc', max_length=150, blank=True, null=True)  # Field name made lowercase.
-    goodsimg = models.TextField(db_column='goodsImg', blank=True, null=True)  # Field name made lowercase.
+    goodsdesc = models.CharField(db_column='goodsDesc', max_length=150, blank=True, null=True)
+    goodsimg = models.TextField(db_column='goodsImg', blank=True, null=True)
     price = models.IntegerField()
-    discountprice = models.IntegerField(db_column='discountPrice', blank=True, null=True)  # Field name made lowercase.
+    discountprice = models.IntegerField(db_column='discountPrice', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -151,11 +154,11 @@ class Goods(models.Model):
 
 class Orders(models.Model):
     order_id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey('User', models.DO_NOTHING)
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
     item_id = models.IntegerField()
-    itemcnt = models.IntegerField(db_column='itemCnt')  # Field name made lowercase.
-    itemprice = models.IntegerField(db_column='itemPrice')  # Field name made lowercase.
-    totalprice = models.IntegerField(db_column='totalPrice')  # Field name made lowercase.
+    itemcnt = models.IntegerField(db_column='itemCnt')
+    itemprice = models.IntegerField(db_column='itemPrice')
+    totalprice = models.IntegerField(db_column='totalPrice')
 
     class Meta:
         managed = False
@@ -164,7 +167,7 @@ class Orders(models.Model):
 
 class Situation(models.Model):
     situation_id = models.AutoField(primary_key=True)
-    situationcategory = models.CharField(db_column='situationCategory', max_length=50)  # Field name made lowercase.
+    situationcategory = models.CharField(db_column='situationCategory', max_length=50)
     situation = models.CharField(max_length=30)
     keyword = models.CharField(max_length=30)
     headline = models.CharField(unique=True, max_length=50)
@@ -174,18 +177,71 @@ class Situation(models.Model):
         db_table = 'situation'
 
 
+class UserManager(BaseUserManager):
+    def create_user(self, login_id, username, userpwd, **extra_fields):
+        if not login_id:
+            raise ValueError('The Login ID must be set')
+        user = self.model(login_id=login_id, username=username, **extra_fields)
+        user.userpwd = make_password(userpwd)
+        user.set_password(userpwd)
+        user.save(using=self._db)
+        return user
 
-class User(models.Model):
+    def create_superuser(self, login_id, username, userpwd, **extra_fields):
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
+
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+
+        return self.create_user(login_id, username, userpwd, **extra_fields)
+
+class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     login_id = models.CharField(unique=True, max_length=50)
     username = models.CharField(max_length=20)
-    userpwd = models.CharField(max_length=128)  # 길이를 늘려서 해시된 비밀번호를 저장할 수 있게 함
+    userpwd = models.CharField(max_length=128)
+
+    # Required fields
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    # Add related_name to avoid clashes
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',
+        blank=True,
+        help_text=('The groups this user belongs to. A user will get all permissions '
+                   'granted to each of their groups.'),
+        related_query_name='user',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_query_name='user',
+    )
+
+    USERNAME_FIELD = 'login_id'
+    REQUIRED_FIELDS = ['username']
+
+    objects = UserManager()
 
     def save(self, *args, **kwargs):
-        # 비밀번호를 해시화
-        self.userpwd = make_password(self.userpwd)
-        super(User, self).save(*args, **kwargs)
+        if not self.pk:
+            self.userpwd = make_password(self.userpwd) # 비밀번호 해시화
+        super().save(*args, **kwargs)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.userpwd)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'user'
+
+    # Add password field with a default value
+    password = models.CharField(max_length=128, default=make_password('default_password'))
