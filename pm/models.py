@@ -179,13 +179,13 @@ class User(models.Model):
     user_id = models.AutoField(primary_key=True)
     login_id = models.CharField(unique=True, max_length=50)
     username = models.CharField(max_length=20)
-    userpwd = models.CharField(max_length=128)  # 길이를 늘려서 해시된 비밀번호를 저장할 수 있게 함
+    userpwd = models.CharField(max_length=128)
 
     def save(self, *args, **kwargs):
-        # 비밀번호를 해시화
+        # 비밀번호 해시화
         self.userpwd = make_password(self.userpwd)
         super(User, self).save(*args, **kwargs)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'user'
