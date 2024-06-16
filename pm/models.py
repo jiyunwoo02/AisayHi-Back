@@ -6,7 +6,6 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 
-from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.hashers import make_password, check_password
@@ -177,71 +176,81 @@ class Situation(models.Model):
         db_table = 'situation'
 
 
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db import models
+from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
+
+# UserManager 클래스: 사용자 생성 및 슈퍼유저 생성을 위한 메서드 정의
 class UserManager(BaseUserManager):
+    # 일반 사용자 생성 메서드
     def create_user(self, login_id, username, userpwd, **extra_fields):
         if not login_id:
-            raise ValueError('The Login ID must be set')
-        user = self.model(login_id=login_id, username=username, **extra_fields)
-        user.userpwd = make_password(userpwd)
-        user.set_password(userpwd)
-        user.save(using=self._db)
+            raise ValueError('The Login ID must be set')  # 로그인 ID가 없으면 - 에러 발생
+        user = self.model(login_id=login_id, username=username, **extra_fields)  # 사용자 인스턴스 생성
+        user.userpwd = make_password(userpwd)  # 비밀번호 해시화
+        user.save(using=self._db)  # 데이터베이스에 저장
         return user
 
+    # 슈퍼유저 생성 메서드
     def create_superuser(self, login_id, username, userpwd, **extra_fields):
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)  # 기본 값으로 is_superuser를 True로 설정
+        extra_fields.setdefault('is_staff', True)  # 기본 값으로 is_staff를 True로 설정
 
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+            raise ValueError('Superuser must have is_superuser=True.')  # is_superuser가 True가 아니면 - 에러 발생
         if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
+            raise ValueError('Superuser must have is_staff=True.')  # is_staff가 True가 아니면 - 에러 발생
 
-        return self.create_user(login_id, username, userpwd, **extra_fields)
+        return self.create_user(login_id, username, userpwd, **extra_fields)  # 일반 사용자 생성 메서드 호출
 
+# User 클래스: 사용자 모델 정의
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.AutoField(primary_key=True)
     login_id = models.CharField(unique=True, max_length=50)
     username = models.CharField(max_length=20)
     userpwd = models.CharField(max_length=128)
 
-    # Required fields
-    is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    date_joined = models.DateTimeField(default=timezone.now)
+    # 필수 필드들
+    is_staff = models.BooleanField(default=False)  # 직원 여부 필드
+    is_active = models.BooleanField(default=True)  # 활성 사용자 여부 필드
+    date_joined = models.DateTimeField(default=timezone.now)  # 가입 날짜 필드
 
-    # Add related_name to avoid clashes
+    # 그룹과의 관계 설정, 충돌을 피하기 위해 related_name과 related_query_name 설정
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='custom_user_set',
         blank=True,
         help_text=('The groups this user belongs to. A user will get all permissions '
                    'granted to each of their groups.'),
-        related_query_name='user',
+        related_query_name='custom_user',
     )
     user_permissions = models.ManyToManyField(
         'auth.Permission',
-        related_name='custom_user_set',
+        related_name='custom_user_set', # ForeignKey 조회 관련 문제 해결!
         blank=True,
         help_text='Specific permissions for this user.',
-        related_query_name='user',
+        related_query_name='custom_user',
     )
 
-    USERNAME_FIELD = 'login_id'
-    REQUIRED_FIELDS = ['username']
+    USERNAME_FIELD = 'login_id'  # 사용자 모델에서 유일한 식별자로 사용할 필드
+    REQUIRED_FIELDS = ['username']  # 사용자 생성 시 반드시 필요한 필드
 
-    objects = UserManager()
+    objects = UserManager()  # UserManager를 사용자 모델의 매니저로 설정
 
+    # 사용자 인스턴스 저장 메서드 오버라이드
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.userpwd = make_password(self.userpwd) # 비밀번호 해시화
-        super().save(*args, **kwargs)
+            self.userpwd = make_password(self.userpwd)  # 비밀번호 해시화
+        super().save(*args, **kwargs)  # 부모 클래스의 save 메서드 호출
 
+    # 비밀번호 확인 메서드
     def check_password(self, raw_password):
-        return check_password(raw_password, self.userpwd)
+        return check_password(raw_password, self.userpwd)  # 비밀번호 일치 여부 확인
 
     class Meta:
         managed = True
         db_table = 'user'
 
-    # Add password field with a default value
+    # 기본 값으로 비밀번호 필드 추가
     password = models.CharField(max_length=128, default=make_password('default_password'))
