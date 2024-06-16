@@ -3,7 +3,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import Goods, Orders, Situation, User, Detail
 
-# Register your models here
 admin.site.register(Goods)
 admin.site.register(Orders)
 admin.site.register(Situation)
@@ -13,6 +12,16 @@ class CustomUserAdmin(BaseUserAdmin):
     model = User
 
     fieldsets = (
+        # is_staff 필드 (일반 사용자 vs 관리자)
+        # : Django의 사용자 모델에서 특정 사용자가 관리자 사이트에 접근할 수 있는지 여부를 나타내는 Boolean 필드
+        # True일 경우, 사용자는 Django 관리자 사이트에 로그인할 수 있으며, 관리자 권한을 가지게 된다
+        # False일 경우, 사용자는 관리자 사이트에 접근할 수 없다
+
+        # is_superuser 필드 (최상위 관리자 계정을 식별 -> 모든 권한 부여)
+        # : Django의 사용자 모델에서 특정 사용자가 모든 권한을 가지는지를 나타내는 Boolean 필드
+        # True일 경우, 사용자는 시스템의 모든 권한을 가지며, 모든 데이터 및 기능에 접근할 수 있다
+        # False일 경우, 사용자는 특정 권한이 부여된 기능에만 접근할 수 있다
+
         (None, {'fields': ('login_id', 'username', 'password')}),
         (_('Personal info'), {'fields': ('date_joined', 'last_login')}),
         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
@@ -23,9 +32,9 @@ class CustomUserAdmin(BaseUserAdmin):
             'fields': ('login_id', 'username', 'password1', 'password2'),
         }),
     )
+
     list_display = ('login_id', 'username', 'is_staff', 'is_superuser')
     search_fields = ('login_id', 'username')
     ordering = ('login_id',)
 
-# Register the custom UserAdmin
 admin.site.register(User, CustomUserAdmin)
