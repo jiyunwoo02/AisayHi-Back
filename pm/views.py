@@ -50,7 +50,12 @@ def login_api(request):
 
             if user is not None:
                 login(request, user)
-                return JsonResponse({'message': 'Login successful'}, status=200)
+                return JsonResponse({'message': 'Login successful',
+                                     'user': {
+                                         # 로그인 성공시 프론트에 넘길 객체
+                                         'login_id': user.login_id,
+                                     },
+                }, status=200)
             else:
                 return JsonResponse({'error': 'Invalid credentials'}, status=400)
 
