@@ -13,7 +13,6 @@ drop table if exists situation;
 drop table if exists detail;
 
 -- 1) 회원 테이블 생성
--- 기본키 지정을 안했으면 not null 유니크가 기본키가 된다!
 CREATE TABLE user
 (	
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -87,5 +86,5 @@ insert into detail(situation_id,detail_id,detail)
 	values (1,1,'커피믹스');
 select * from detail;
 
--- 데이터베이스 내 테이블 조회
+-- 데이터베이스 내 테이블 조회: 5개가 보여야 한다!
 show tables;

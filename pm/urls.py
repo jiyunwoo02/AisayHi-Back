@@ -4,6 +4,6 @@ from .views import login_api
 
 
 urlpatterns = [
-    path('signup/', signup_api, name='signup'),
-    path('login/', login_api, name='login'),
+    path('signup/', signup_api, name='signup'), # 회원가입
+    path('login/', login_api, name='login'), # 로그인
 ]

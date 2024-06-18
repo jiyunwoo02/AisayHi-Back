@@ -52,7 +52,7 @@ def login_api(request):
                 login(request, user)
                 return JsonResponse({'message': 'Login successful',
                                      'user': {
-                                         # 로그인 성공시 프론트에 넘길 객체
+                                         # 로그인 성공시 프론트에 넘길 객체: 로그인하면 해당 사용자 정보로 사이트 이용
                                          'login_id': user.login_id,
                                      },
                 }, status=200)

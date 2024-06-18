@@ -33,8 +33,8 @@ class CustomUserAdmin(BaseUserAdmin):
         }),
     )
 
-    list_display = ('login_id', 'username', 'is_staff', 'is_superuser')
-    search_fields = ('login_id', 'username')
-    ordering = ('login_id',)
+    list_display = ('login_id', 'username', 'is_staff', 'is_superuser') # 4가지 시각화
+    search_fields = ('login_id', 'username') # 아이디와 사용자명 서치
+    ordering = ('login_id',) # 아이디 기본 정렬
 
 admin.site.register(User, CustomUserAdmin)
