@@ -14,10 +14,11 @@ def signup_api(request):
             username = data.get('username')
             userpwd = data.get('userpwd')
 
+            # 아이디, 사용자명, 비밀번호 중 하나라도 입력하지 않으면 -> 에러
             if not login_id or not username or not userpwd:
                 return JsonResponse({'error': 'Missing fields'}, status=400)
 
-            # 사용자가 이미 존재하는지 확인해 중복 회원가입 방지
+            # 사용자가 이미 존재하는지 확인 -> 중복 회원가입 방지
             if User.objects.filter(login_id=login_id).exists():
                 return JsonResponse({'error': 'User already exists'}, status=400)
 
@@ -46,8 +47,10 @@ def login_api(request):
             if not login_id or not userpwd:
                 return JsonResponse({'error': 'Missing fields'}, status=400)
 
+            # 사용자 인증 - 아이디, 비밀번호
             user = authenticate(request, login_id=login_id, password=userpwd)
 
+            # 사용자가 존재한다면
             if user is not None:
                 login(request, user)
                 return JsonResponse({'message': 'Login successful',

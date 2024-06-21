@@ -9,10 +9,10 @@
 # MySQL DB와 연동하여 생성
 # python manage.py inspectdb > models.py 와 추가 작성 코드
 
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
-from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
@@ -178,12 +178,6 @@ class Situation(models.Model):
         managed = False
         db_table = 'situation'
 
-
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
-from django.utils import timezone
-from django.contrib.auth.hashers import make_password, check_password
-
 # UserManager 클래스: 사용자 생성 및 슈퍼유저 생성을 위한 메서드 정의
 class UserManager(BaseUserManager):
     # 일반 사용자 생성 메서드
@@ -242,6 +236,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()  # UserManager를 사용자 모델의 매니저로 설정
 
     # 사용자 인스턴스 저장 메서드 오버라이드
+    # Override: 부모 클래스가 정의한 함수를 덮어씌워 다시 정의하여 사용
+    # -- 부모 클래스의 메소드를 사용할 수 있어도 자식 클래스에서 변경해야 할 상황이 발생한다면
+    # -- 오버라이드를 통해 자식 클래스에서만 새로운 기능으로 재정의할 수 있다
     def save(self, *args, **kwargs):
         if not self.pk:
             self.userpwd = make_password(self.userpwd)  # 비밀번호 해시화

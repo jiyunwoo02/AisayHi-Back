@@ -49,6 +49,7 @@ MIDDLEWARE = [
 ]
 
 # 필수! - 이거로 API 성공
+# Django와 React를 연동하기 위해 작성, 포트 명시
 CORS_ORIGIN_WHITELIST = ('http://127.0.0.1:3000', 'http://localhost:3000')
 CORS_ALLOW_CREDENTIALS = True
 
@@ -72,6 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# 본인 MySQL 계정에 맞게 수정
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -79,7 +81,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '1234',
         'HOST': '127.0.0.1',
-        'PORT': '3307',
+        'PORT': '3306',
     }
 }
 
@@ -110,6 +112,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# 로그인 API 인증
 AUTHENTICATION_BACKENDS = [
     'pm.auth_backends.LoginIdBackend',
     'django.contrib.auth.backends.ModelBackend',

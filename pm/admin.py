@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import Goods, Orders, Situation, User, Detail
 
+# admin 사이트에 DB 테이블 등록
 admin.site.register(Goods)
 admin.site.register(Orders)
 admin.site.register(Situation)
