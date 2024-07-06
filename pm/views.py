@@ -1,8 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+
 from django.contrib.auth import authenticate, login
 from .models import User
+
+from rest_framework import viewsets
+from .models import Goods
+from .serializers import GoodsSerializer
 
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
@@ -66,3 +71,8 @@ def login_api(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+# 제품등록 API: 모든 필드
+class GoodsViewSet(viewsets.ModelViewSet):
+    queryset = Goods.objects.all()
+    serializer_class = GoodsSerializer

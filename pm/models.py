@@ -237,8 +237,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # 사용자 인스턴스 저장 메서드 오버라이드
     # Override: 부모 클래스가 정의한 함수를 덮어씌워 다시 정의하여 사용
-    # -- 부모 클래스의 메소드를 사용할 수 있어도 자식 클래스에서 변경해야 할 상황이 발생한다면
-    # -- 오버라이드를 통해 자식 클래스에서만 새로운 기능으로 재정의할 수 있다
     def save(self, *args, **kwargs):
         if not self.pk:
             self.userpwd = make_password(self.userpwd)  # 비밀번호 해시화
