@@ -72,7 +72,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
+con
 # 본인 MySQL 계정 정보에 맞게 수정
 DATABASES = {
     'default': {
