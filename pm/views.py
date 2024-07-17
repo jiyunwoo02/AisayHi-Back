@@ -2,12 +2,18 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+# 사용자
 from django.contrib.auth import authenticate, login
 from .models import User
 
+# 상품
 from rest_framework import viewsets
 from .models import Goods
 from .serializers import GoodsSerializer
+
+# 주문
+from .models import Orders
+from .serializers import OrdersSerializer
 
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
@@ -72,7 +78,12 @@ def login_api(request):
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
-# 제품등록 API: 모든 필드
+# 제품등록 API: 모든 필드 사용
 class GoodsViewSet(viewsets.ModelViewSet):
     queryset = Goods.objects.all()
     serializer_class = GoodsSerializer
+
+# 주문등록 API: 모든 필드 사용
+class OrdersViewSet(viewsets.ModelViewSet):
+    queryset = Orders.objects.all()
+    serializer_class = OrdersSerializer

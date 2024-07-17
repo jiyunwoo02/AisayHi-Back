@@ -156,6 +156,8 @@ class Goods(models.Model):
 
 class Orders(models.Model):
     order_id = models.IntegerField(primary_key=True)
+    # ForeignKey로 연결된 외래 키 필드는 해당 객체로 자동 변환된다
+    # -- 따라서 user_id라는 이름 대신에 user라는 필드명으로 변환
     user = models.ForeignKey('User', on_delete=models.CASCADE)
     item_id = models.IntegerField()
     itemcnt = models.IntegerField(db_column='itemCnt')
