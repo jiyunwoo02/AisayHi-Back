@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['login_id', 'username', 'userpwd']
 
-# 제품등록 API
+# 제품 관련 API (등록/제거/조회/갱신)
 class GoodsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goods

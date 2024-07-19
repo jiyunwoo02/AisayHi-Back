@@ -17,5 +17,5 @@ router.register(r'orders', OrdersViewSet)
 urlpatterns = [
     path('signup/', signup_api, name='signup'), # 회원가입
     path('login/', login_api, name='login'), # 로그인
-    path('', include(router.urls)), # 제품등록, 주문등록
+    path('', include(router.urls)), # 제품 관련, 주문 등록
 ]
