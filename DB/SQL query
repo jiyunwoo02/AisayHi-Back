@@ -1,9 +1,4 @@
--- 데이터베이스 보기
-show databases;
-
-DROP DATABASE IF EXISTS market_kw; -- 만약 market_kw가 존재하면 우선 삭제한다!
-CREATE DATABASE market_kw; -- 데이터베이스 생성
-USE market_kw; -- 해당 데이터베이스를 사용하겠다!
+USE portermarket;
 
 -- 해당 테이블이 이미 존재하면 삭제하겠다!
 drop table if exists user;
@@ -14,7 +9,7 @@ drop table if exists detail;
 
 -- 1) 회원 테이블 생성
 CREATE TABLE user
-(	
+(
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     login_id VARCHAR(50) NOT NULL UNIQUE,
     username VARCHAR(20) NOT NULL,
@@ -37,9 +32,9 @@ CREATE TABLE goods
     discountPrice INT NULL
 );
 desc goods;
-insert into goods(goods_id,goodsName,category,brand,goodsDesc,goodsImg,price,discountPrice) 
+insert into goods(goods_id,goodsName,category,brand,goodsDesc,goodsImg,price,discountPrice)
 	values (1,'꿈나무연필12자루','필기구','꿈나무','연필 12자루가 들어있는 패키지',
-			'https://i.namu.wiki/i/BplQJDHnRNwuNhgAmXSlolLa5p2rSaj6zDPipUSRhF7DM4Y8ul0LJZUWBV8ujil8pYlW3O0DUsBLDmzU6ulyLA.webp', 
+			'https://i.namu.wiki/i/BplQJDHnRNwuNhgAmXSlolLa5p2rSaj6zDPipUSRhF7DM4Y8ul0LJZUWBV8ujil8pYlW3O0DUsBLDmzU6ulyLA.webp',
 			2000, 1800);
 select * from goods;
 

@@ -1,20 +1,8 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from rest_framework import viewsets, filters
-from django_filters.rest_framework import DjangoFilterBackend
-
-# 사용자
 from django.contrib.auth import authenticate, login
 from .models import User
-
-# 상품
-from .models import Goods
-from .serializers import GoodsSerializer
-
-# 주문
-from .models import Orders
-from .serializers import OrdersSerializer
 
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
@@ -78,26 +66,3 @@ def login_api(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
-
-# 제품 관련 API: 모든 필드 사용 (등록/제거/조회/갱신)
-# -- 제품 데이터에 대한 CRUD 및 검색/필터링/정렬 기능 제공
-class GoodsViewSet(viewsets.ModelViewSet):
-    queryset = Goods.objects.all()
-    serializer_class = GoodsSerializer
-
-    # 필터링/검색/정렬 백엔드 설정
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-
-    # 필터링 필드 설정: category와 brand 필드를 사용하여 필터링 가능
-    filterset_fields = ['category', 'brand']
-
-    # 검색 필드 설정: goodsname과 goodsdesc 필드를 사용하여 검색 가능
-    search_fields = ['goodsname', 'goodsdesc']
-
-    # 정렬 필드 설정: price와 discountprice 필드를 사용하여 정렬 가능
-    ordering_fields = ['price', 'discountprice']
-
-# 주문등록 API: 모든 필드 사용
-class OrdersViewSet(viewsets.ModelViewSet):
-    queryset = Orders.objects.all()
-    serializer_class = OrdersSerializer
