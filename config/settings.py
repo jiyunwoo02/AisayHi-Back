@@ -50,7 +50,9 @@ MIDDLEWARE = [
 
 # 필수! - 이거로 API 성공
 # Django와 React를 연동하기 위해 작성, 포트 명시
-CORS_ORIGIN_WHITELIST = ('http://127.0.0.1:3000', 'http://localhost:3000')
+CORS_ORIGIN_WHITELIST = [ # 올바른 형식의 URL 예제
+    'http://localhost:5174'
+    ]
 CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'config.urls'
@@ -77,11 +79,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'market_kw',
-        'USER': 'root',
-        'PASSWORD': '1234',
-        'HOST': '127.0.0.1',
-        'PORT': '3307',
+        'NAME': 'portermarket',
+        'USER': 'portermarket_user',
+        'PASSWORD': 'portermarket~!@#?',
+        'HOST': '220.118.124.21',
+        'PORT': '6875',
     }
 }
 
