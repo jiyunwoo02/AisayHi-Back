@@ -11,6 +11,7 @@
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.template.backends import django
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
 
@@ -208,12 +209,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=20)
     userpwd = models.CharField(max_length=128)
 
-    # 필수 필드들
-    is_staff = models.BooleanField(default=False)  # 직원 여부 필드
-    is_active = models.BooleanField(default=True)  # 활성 사용자 여부 필드
-    date_joined = models.DateTimeField(default=timezone.now)  # 가입 날짜 필드
+    # Django 기본 필드 추가
+    last_login = models.DateTimeField(null=True, blank=True)
+    is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    date_joined = models.DateTimeField(default=timezone.now)
 
-    # 그룹과의 관계 설정, 충돌을 피하기 위해 related_name과 related_query_name 설정
+    # groups 필드 (ManyToMany 관계)
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='custom_user_set',
@@ -224,33 +227,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     user_permissions = models.ManyToManyField(
         'auth.Permission',
-        related_name='custom_user_set', # ForeignKey 조회 관련 문제 해결!
+        related_name='custom_user_set',
         blank=True,
         help_text='Specific permissions for this user.',
         related_query_name='custom_user',
     )
 
-    USERNAME_FIELD = 'login_id'  # 사용자 모델에서 유일한 식별자로 사용할 필드
-    REQUIRED_FIELDS = ['username']  # 사용자 생성 시 반드시 필요한 필드
+    USERNAME_FIELD = 'login_id'
+    REQUIRED_FIELDS = ['username']
 
-    objects = UserManager()  # UserManager를 사용자 모델의 매니저로 설정
-
-    # 사용자 인스턴스 저장 메서드 오버라이드
-    # Override: 부모 클래스가 정의한 함수를 덮어씌워 다시 정의하여 사용
-    # -- 부모 클래스의 메소드를 사용할 수 있어도 자식 클래스에서 변경해야 할 상황이 발생한다면
-    # -- 오버라이드를 통해 자식 클래스에서만 새로운 기능으로 재정의할 수 있다
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            self.userpwd = make_password(self.userpwd)  # 비밀번호 해시화
-        super().save(*args, **kwargs)  # 부모 클래스의 save 메서드 호출
-
-    # 비밀번호 확인 메서드
-    def check_password(self, raw_password):
-        return check_password(raw_password, self.userpwd)  # 비밀번호 일치 여부 확인
+    objects = UserManager()
 
     class Meta:
         managed = True
         db_table = 'user'
-
-    # 기본 값으로 비밀번호 필드 추가
-    password = models.CharField(max_length=128, default=make_password('default_password'))

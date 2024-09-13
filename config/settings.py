@@ -78,12 +78,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # 본인 MySQL 계정에 맞게 수정
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'mysql.connector.django', # mariadb로 연결되는 오류 발생 -> 수정
         'NAME': 'portermarket',
         'USER': 'portermarket_user',
         'PASSWORD': 'portermarket~!@#?',
-        'HOST': '220.118.124.21',
-        'PORT': '6875',
+        'HOST': '220.118.124.21',  # MySQL 서버 주소
+        'PORT': '6875',  # MySQL 포트 번호
     }
 }
 
