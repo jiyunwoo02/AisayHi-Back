@@ -1,13 +1,8 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-
-# CRUD 기능 구현
-from rest_framework import generics
-
 from django.contrib.auth import authenticate, login
-from .models import User, Goods
-from .serializers import GoodsSerializer
+from .models import User
 
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
@@ -71,17 +66,3 @@ def login_api(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
-
-# 제품 정보 제공 API: Goods 테이블의 전체 컬럼 사용
-# 1) 전체 제품 목록 제공 API
-# ListCreateAPIView: GET, POST 요청 구현
-class GoodsList(generics.ListCreateAPIView):
-    queryset = Goods.objects.all()
-    serializer_class = GoodsSerializer
-
-# 개별 제품 정보 제공 API
-# RetrieveUpdateDestroyAPIView: GET, PATCH/PUT, DELETE 요청 구현
-class GoodsDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Goods.objects.all()
-    serializer_class = GoodsSerializer
-    lookup_field = 'goods_id'  # 기본 pk 대신 goods_id로 조회
