@@ -102,7 +102,7 @@ CREATE TABLE situationKeyword
 );
 desc situationKeyword;
 insert into situationKeyword
-	values (22,1,'바쁜');
+	values (23,1,'바쁜');
 select * from situationKeyword;
 
 -- 데이터베이스 내 테이블 조회: 6개가 보여야 한다!

@@ -166,7 +166,7 @@ class SituationCategory(models.Model):
 
 class Situation(models.Model):
     situationKey = models.AutoField(primary_key=True)
-    situationCateKey = models.ForeignKey(SituationCategory, on_delete=models.CASCADE)  # 상황 카테고리 외래 키
+    situationCateKey = models.ForeignKey(SituationCategory, on_delete=models.CASCADE, db_column='situationCateKey')  # 상황 카테고리 외래 키
     headline1 = models.CharField(max_length=50)
     headline2 = models.CharField(max_length=50)
     mainKeyword = models.CharField(max_length=30)
@@ -178,7 +178,7 @@ class Situation(models.Model):
 
 class SituationKeyword(models.Model):
     situationKwKey = models.AutoField(primary_key=True)  # 키워드 키
-    situationKey = models.ForeignKey(Situation, on_delete=models.CASCADE)  # 상황 외래키
+    situationKey = models.ForeignKey(Situation, on_delete=models.CASCADE, db_column='SituationKeyword')  # 상황 외래키
     situationKeyword = models.CharField(max_length=30)  # 키워드
 
     class Meta:
