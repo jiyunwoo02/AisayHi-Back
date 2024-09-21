@@ -1,19 +1,7 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
-
-# MySQL DB와 연동하여 생성
-# python manage.py inspectdb > models.py 와 추가 작성 코드
-
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
-from django.template.backends import django
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
@@ -84,17 +72,6 @@ class AuthUserUserPermissions(models.Model):
         unique_together = (('user', 'permission'),)
 
 
-class Detail(models.Model):
-    situation = models.ForeignKey('Situation', models.DO_NOTHING)
-    detail = models.CharField(max_length=150)
-    detail_id = models.IntegerField(primary_key=True)
-
-    class Meta:
-        managed = False
-        db_table = 'detail'
-
-
-
 class DjangoAdminLog(models.Model):
     action_time = models.DateTimeField()
     object_id = models.TextField(blank=True, null=True)
@@ -141,66 +118,95 @@ class DjangoSession(models.Model):
 
 
 class Goods(models.Model):
-    goods_id = models.AutoField(primary_key=True)
-    goodsname = models.CharField(db_column='goodsName', max_length=30)
-    category = models.CharField(max_length=30)
-    brand = models.CharField(max_length=30)
-    goodsdesc = models.CharField(db_column='goodsDesc', max_length=150, blank=True, null=True)
-    goodsimg = models.TextField(db_column='goodsImg', blank=True, null=True)
-    price = models.IntegerField()
-    discountprice = models.IntegerField(db_column='discountPrice', blank=True, null=True)
+    goodsKey = models.AutoField(primary_key=True)  # Auto-increment primary key
+    goodsCateKey = models.IntegerField(default=1)  # 기본값을 1로 설정
+    ASIN = models.CharField(max_length=30)  # Not null
+    goodsName = models.CharField(max_length=150)  # Not null
+    brand = models.CharField(max_length=30, blank=True, null=True)  # Nullable
+    originalPrice = models.IntegerField()  # Not null
+    discountedPrice = models.IntegerField()  # Not null
+    ratingAvg = models.FloatField(blank=True, null=True)  # Nullable
+    goodsInfo = models.CharField(max_length=150, blank=True, null=True)  # Nullable
+    goodsDesc = models.CharField(max_length=150, blank=True, null=True)  # Nullable
+    category1 = models.CharField(max_length=30)
+    category2 = models.CharField(max_length=30)
+    category3 = models.CharField(max_length=30)
 
     class Meta:
         managed = False
         db_table = 'goods'
 
 
+
 class Orders(models.Model):
-    order_id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey('User', on_delete=models.CASCADE)
-    item_id = models.IntegerField()
-    itemcnt = models.IntegerField(db_column='itemCnt')
-    itemprice = models.IntegerField(db_column='itemPrice')
-    totalprice = models.IntegerField(db_column='totalPrice')
+    orderKey = models.AutoField(primary_key=True)
+    userKey = models.IntegerField()
+    totalPrice = models.PositiveIntegerField()  # 총 가격
+    rdate = models.DateField()  # 주문 날짜
+    orderDetKey = models.IntegerField()  # 주문 세부 정보 키
+    goodsKey = models.ForeignKey(Goods, on_delete=models.CASCADE, db_column='goodsKey')  # 상품 외래 키
+    price = models.PositiveIntegerField()  # 개별 가격
+    cnt = models.PositiveIntegerField()  # 수량
 
     class Meta:
         managed = False
         db_table = 'orders'
 
 
+class SituationCategory(models.Model):
+    situationCateKey = models.AutoField(primary_key=True)  # 카테고리 키
+    situationCategory1 = models.CharField(max_length=30)  # 카테고리 1
+    situationCategory2 = models.CharField(max_length=30)  # 카테고리 2
+    situationCategory3 = models.CharField(max_length=30)  # 카테고리 3
+
+    class Meta:
+        managed = False
+        db_table = 'situationCategory'
+
+
 class Situation(models.Model):
-    situation_id = models.AutoField(primary_key=True)
-    situationcategory = models.CharField(db_column='situationCategory', max_length=50)
-    situation = models.CharField(max_length=30)
-    keyword = models.CharField(max_length=30)
-    headline = models.CharField(unique=True, max_length=50)
+    situationKey = models.AutoField(primary_key=True)
+    situationCateKey = models.ForeignKey(SituationCategory, on_delete=models.CASCADE)  # 상황 카테고리 외래 키
+    headline1 = models.CharField(max_length=50)
+    headline2 = models.CharField(max_length=50)
+    mainKeyword = models.CharField(max_length=30)
 
     class Meta:
         managed = False
         db_table = 'situation'
 
+
+class SituationKeyword(models.Model):
+    situationKwKey = models.AutoField(primary_key=True)  # 키워드 키
+    situationKey = models.ForeignKey(Situation, on_delete=models.CASCADE)  # 상황 외래키
+    situationKeyword = models.CharField(max_length=30)  # 키워드
+
+    class Meta:
+        managed = False
+        db_table = 'situationKeyword'
+
+
 # UserManager 클래스: 사용자 생성 및 슈퍼유저 생성을 위한 메서드 정의
 class UserManager(BaseUserManager):
-    # 일반 사용자 생성 메서드
     def create_user(self, login_id, username, userpwd, **extra_fields):
         if not login_id:
-            raise ValueError('The Login ID must be set')  # 로그인 ID가 없으면 - 에러 발생
-        user = self.model(login_id=login_id, username=username, **extra_fields)  # 사용자 인스턴스 생성
-        user.userpwd = make_password(userpwd)  # 비밀번호 해시화
-        user.save(using=self._db)  # 데이터베이스에 저장
+            raise ValueError('The Login ID must be set')
+        user = self.model(login_id=login_id, username=username, **extra_fields)
+        user.userpwd = make_password(userpwd)
+        user.save(using=self._db)
         return user
 
-    # 슈퍼유저 생성 메서드
     def create_superuser(self, login_id, username, userpwd, **extra_fields):
-        extra_fields.setdefault('is_superuser', True)  # 기본 값으로 is_superuser를 True로 설정
-        extra_fields.setdefault('is_staff', True)  # 기본 값으로 is_staff를 True로 설정
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
 
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')  # is_superuser가 True가 아니면 - 에러 발생
+            raise ValueError('Superuser must have is_superuser=True.')
         if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')  # is_staff가 True가 아니면 - 에러 발생
+            raise ValueError('Superuser must have is_staff=True.')
 
-        return self.create_user(login_id, username, userpwd, **extra_fields)  # 일반 사용자 생성 메서드 호출
+        return self.create_user(login_id, username, userpwd, **extra_fields)
+
 
 # User 클래스: 사용자 모델 정의
 class User(AbstractBaseUser, PermissionsMixin):
@@ -209,14 +215,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=20)
     userpwd = models.CharField(max_length=128)
 
-    # Django 기본 필드 추가
     last_login = models.DateTimeField(null=True, blank=True)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
-    # groups 필드 (ManyToMany 관계)
+    # Django 기본 필드 추가
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='custom_user_set',
@@ -239,5 +244,5 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     class Meta:
-        managed = True
+        managed = True  # Django가 이 테이블을 관리하도록 설정
         db_table = 'user'

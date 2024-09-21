@@ -88,14 +88,14 @@ class GoodsViewSet(viewsets.ModelViewSet):
     # 필터링/검색/정렬 백엔드 설정
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
-    # 필터링 필드 설정: category와 brand 필드를 사용하여 필터링 가능
-    filterset_fields = ['category', 'brand']
+    # 필터링 필드 설정
+    filterset_fields = ['category1', 'brand']
 
-    # 검색 필드 설정: goodsname과 goodsdesc 필드를 사용하여 검색 가능
-    search_fields = ['goodsname', 'goodsdesc']
+    # 검색 필드 설정
+    search_fields = ['goodsName', 'goodsDesc']
 
-    # 정렬 필드 설정: price와 discountprice 필드를 사용하여 정렬 가능
-    ordering_fields = ['price', 'discountprice']
+    # 정렬 필드 설정
+    ordering_fields = ['originalPrice', 'discountedPrice']
 
 # 주문등록 API: 모든 필드 사용
 class OrdersViewSet(viewsets.ModelViewSet):
