@@ -139,3 +139,13 @@ CREATE TABLE user_user_permissions (
     FOREIGN KEY (permission_id) REFERENCES auth_permission(id)
 );
 
+CREATE TABLE goodsKeyword
+(
+    goodsKwKey INT AUTO_INCREMENT PRIMARY KEY,
+    ASIN VARCHAR(30) NOT NULL,
+    goodsKeyword VARCHAR(30) NOT NULL,
+    FOREIGN KEY (ASIN) REFERNECES goods(ASIN)
+);
+desc goodsKeyword;
+insert into goodsKeyword values (1,’B0BPWV9QNN’,’키워드’);
+select * from goodsKeyword;

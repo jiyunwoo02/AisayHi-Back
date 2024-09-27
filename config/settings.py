@@ -120,3 +120,8 @@ AUTHENTICATION_BACKENDS = [
     'pm.auth_backends.LoginIdBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
+

@@ -2,7 +2,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework import viewsets, filters
+
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
+
 
 # 사용자
 from django.contrib.auth import authenticate, login

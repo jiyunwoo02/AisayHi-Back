@@ -120,7 +120,7 @@ class DjangoSession(models.Model):
 class Goods(models.Model):
     goodsKey = models.AutoField(primary_key=True)  # Auto-increment primary key
     goodsCateKey = models.IntegerField(default=1)  # 기본값을 1로 설정
-    ASIN = models.CharField(max_length=30)  # Not null
+    ASIN = models.CharField(unique=True, max_length=30)  # Not null
     goodsName = models.CharField(max_length=150)  # Not null
     brand = models.CharField(max_length=30, blank=True, null=True)  # Nullable
     originalPrice = models.IntegerField()  # Not null
@@ -185,18 +185,29 @@ class SituationKeyword(models.Model):
         managed = False
         db_table = 'situationKeyword'
 
+class goodsKeyword(models.Model):
+    goodsKwKey = models.AutoField(primary_key=True)
+    ASIN = models.ForeignKey(Goods, on_delete=models.CASCADE, db_column='ASIN')
+    goodsKeyword = models.CharField(max_length=30)
+
+    class Meta:
+        managed = False
+        db_table = 'goodsKeyword'
+
 
 # UserManager 클래스: 사용자 생성 및 슈퍼유저 생성을 위한 메서드 정의
 class UserManager(BaseUserManager):
-    def create_user(self, login_id, username, userpwd, **extra_fields):
+    def create_user(self, login_id, username, password=None, **extra_fields): # userpwd를 password로 변경 -> Django의 기본 인증 시스템과 호환
         if not login_id:
             raise ValueError('The Login ID must be set')
         user = self.model(login_id=login_id, username=username, **extra_fields)
-        user.userpwd = make_password(userpwd)
+
+        # 비밀번호를 해시화하여 저장
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, login_id, username, userpwd, **extra_fields):
+    def create_superuser(self, login_id, username, password=None, **extra_fields):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_staff', True)
 
@@ -205,7 +216,7 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
 
-        return self.create_user(login_id, username, userpwd, **extra_fields)
+        return self.create_user(login_id, username, password, **extra_fields)
 
 
 # User 클래스: 사용자 모델 정의
