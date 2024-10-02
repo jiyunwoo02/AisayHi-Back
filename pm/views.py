@@ -10,6 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 # 사용자
 from django.contrib.auth import authenticate, login
 from .models import User
+from django.contrib.auth.hashers import make_password
 
 # 상품
 from .models import Goods
@@ -29,11 +30,11 @@ def signup_api(request):
             username = data.get('username')
             userpwd = data.get('userpwd')
 
-            # 아이디, 사용자명, 비밀번호 중 하나라도 입력하지 않으면 -> 에러
+            # 필드 확인
             if not login_id or not username or not userpwd:
                 return JsonResponse({'error': 'Missing fields'}, status=400)
 
-            # 사용자가 이미 존재하는지 확인 -> 중복 회원가입 방지
+            # 중복 회원가입 방지
             if User.objects.filter(login_id=login_id).exists():
                 return JsonResponse({'error': 'User already exists'}, status=400)
 
@@ -69,10 +70,11 @@ def login_api(request):
             if user is not None:
                 login(request, user)
                 return JsonResponse({'message': 'Login successful',
-                                     'user': {
-                                         # 로그인 성공시 프론트에 넘길 객체: 로그인하면 해당 사용자 정보로 사이트 이용
-                                         'login_id': user.login_id,
-                                     },
+                                         'user': {
+                                             # 로그인 성공시 프론트에 넘길 객체: 로그인하면 해당 사용자 정보로 사이트 이용
+                                             'login_id': user.login_id,
+                                             'userpwd':user.userpwd
+                                         },
                 }, status=200)
             else:
                 return JsonResponse({'error': 'Invalid credentials'}, status=400)
