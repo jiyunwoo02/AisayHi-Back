@@ -28,6 +28,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'pm',
     'corsheaders',
+    'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -119,3 +120,8 @@ AUTHENTICATION_BACKENDS = [
     'pm.auth_backends.LoginIdBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
+
