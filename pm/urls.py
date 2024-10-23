@@ -3,9 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import signup_api
 from .views import login_api
-from .views import GoodsViewSet, OrdersViewSet, situation_based_recommendation_view
+from .views import GoodsViewSet, OrdersViewSet, recommend
 
-from .views import situation_based_recommendation_view  # 상황 추천 View 가져오기
 
 # DefaultRouter는 ViewSet와 함께 사용되어 URL 패턴 자동 생성 및 관리
 router = DefaultRouter() # DefaultRouter 인스턴스 생성
@@ -19,6 +18,6 @@ router.register(r'orders', OrdersViewSet)
 urlpatterns = [
     path('signup/', signup_api, name='signup'), # 회원가입
     path('login/', login_api, name='login'), # 로그인
-    path('situation/recommend/<int:situation_key>/', situation_based_recommendation_view, name='situation_recommend'),
+    path('recommend/', recommend, name='recommend'),  # 추천 API 경로
     path('', include(router.urls)), # 제품 관련, 주문 등록
 ]

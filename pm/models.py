@@ -130,15 +130,12 @@ class Goods(models.Model):
     goodsDesc = models.TextField(blank=True, null=True)  # Nullable
     goodsImg = models.CharField(max_length=500)  # Not null
 
-    class Meta:
-        managed = False
-        db_table = 'goods'
-
+    def __str__(self):
+        return self.goodsName  # 객체를 문자열로 표현할 때 상품명 표시
 
     class Meta:
         managed = False
         db_table = 'goods'
-
 
 
 class Orders(models.Model):
