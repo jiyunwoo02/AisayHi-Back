@@ -20,6 +20,18 @@ from .serializers import GoodsSerializer
 from .models import Orders
 from .serializers import OrdersSerializer
 
+
+import pandas as pd
+import random
+import os
+from django.conf import settings
+
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+
+
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
 def signup_api(request):
@@ -107,3 +119,91 @@ class GoodsViewSet(viewsets.ModelViewSet):
 class OrdersViewSet(viewsets.ModelViewSet):
     queryset = Orders.objects.all()
     serializer_class = OrdersSerializer
+
+
+
+
+
+# **CSV 파일 경로 설정 및 데이터 로드**
+CSV_DIR = os.path.join(settings.BASE_DIR, 'pm/data/')
+goods = pd.read_csv(os.path.join(CSV_DIR, 'goods.csv'), encoding='utf-8-sig')
+goodsKeyword = pd.read_csv(os.path.join(CSV_DIR, 'goodsKeyword.csv'), encoding='utf-8-sig')
+situation = pd.read_csv(os.path.join(CSV_DIR, 'situation.csv'), encoding='utf-8-sig')
+situationCategory = pd.read_csv(os.path.join(CSV_DIR, 'situationCategory.csv'), encoding='utf-8-sig')
+situationKeyword = pd.read_csv(os.path.join(CSV_DIR, 'situationKeyword.csv'), encoding='utf-8-sig')
+
+# **CSV 데이터 병합 및 전처리**
+goods = goods.merge(goodsKeyword[['ASIN', 'goodsKeyword']], on='ASIN', how='left')
+goods['goodsKeyword'] = goods['goodsKeyword'].fillna('')
+
+situation_data = situation.merge(situationCategory, on='situationCateKey', how='left')
+
+
+
+# **추천 함수: 탕비실(식음료) 상품 포함/제외 처리**
+def get_recommendations(goods_df, pantry_only=False, exclude_pantry=False, num_recommendations=12):
+    if pantry_only:
+        # category1이 '식음료'인 상품만 필터링
+        filtered_goods = goods_df[goods_df['category1'] == '식음료']
+    elif exclude_pantry:
+        # category1이 '식음료'가 아닌 상품만 필터링
+        filtered_goods = goods_df[goods_df['category1'] != '식음료']
+    else:
+        # 모든 상품 대상으로 추천
+        filtered_goods = goods_df
+
+    # 무작위 추천
+    if filtered_goods.empty:
+        return []
+
+    recommendations = filtered_goods.sample(n=min(num_recommendations, len(filtered_goods)))
+
+    return recommendations[[
+        'category1', 'category2', 'goodsName', 'brand',
+        'originalPrice', 'discountedPrice', 'ratingAvg',
+        'ratingCount', 'goodsImg'
+    ]].to_dict(orient='records')
+
+
+# **상황 기반 추천 View (수정됨)**
+def situation_based_recommendation_view(request, situation_key):
+    try:
+        print(f"Received request for situation_key: {situation_key}")
+
+        # 상황 키 유효성 검사 및 데이터 가져오기
+        situation_key = int(situation_key)
+        situation_info = situation_data[situation_data['situationKey'] == situation_key]
+
+        if situation_info.empty:
+            return JsonResponse({'error': 'Invalid situation key'}, status=404)
+
+        situation_info = situation_info.iloc[0]
+        situation_category = f"{situation_info['situationCategory1']} > {situation_info['situationCategory2']}"
+        # **추천 섹션 구분: 식음료 제외 섹션 / 식음료 전용 섹션**
+
+        # 일반 상품 추천 (식음료 제외)
+        general_recommendation_1 = get_recommendations(goods, exclude_pantry=True)
+        general_recommendation_2 = get_recommendations(goods, exclude_pantry=True)
+
+        # 탕비실 전용 상품 추천 (식음료만)
+        pantry_recommendation_1 = get_recommendations(goods, pantry_only=True)
+        pantry_recommendation_2 = get_recommendations(goods, pantry_only=True)
+
+        # 프론트엔드로 전달할 응답 구성
+        response = {
+            'situation_category': situation_category,
+            'headline1': situation_info['headline1'],
+            'headline2': situation_info['headline2'],
+            'general_recommendation_1': general_recommendation_1,
+            'general_recommendation_2': general_recommendation_2,
+            'pantry_recommendation_1': pantry_recommendation_1,
+            'pantry_recommendation_2': pantry_recommendation_2,
+        }
+
+        return JsonResponse(response)
+
+    except ValueError:
+        return JsonResponse({'error': 'Invalid situation key format'}, status=400)
+    except Exception as e:
+        print(f"Error: {str(e)}")  # 로그 출력
+        return JsonResponse({'error': str(e)}, status=500)
