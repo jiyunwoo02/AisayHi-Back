@@ -119,23 +119,23 @@ class DjangoSession(models.Model):
 
 class Goods(models.Model):
     goodsKey = models.AutoField(primary_key=True)  # Auto-increment primary key
-    goodsCateKey = models.IntegerField(default=1)  # 기본값을 1로 설정
     ASIN = models.CharField(unique=True, max_length=30)  # Not null
-    goodsName = models.CharField(max_length=150)  # Not null
-    brand = models.CharField(max_length=30, blank=True, null=True)  # Nullable
+    goodsName = models.CharField(max_length=300)  # Not null
+    brand = models.CharField(max_length=50, blank=True, null=True)  # Nullable
     originalPrice = models.IntegerField()  # Not null
     discountedPrice = models.IntegerField()  # Not null
     ratingAvg = models.FloatField(blank=True, null=True)  # Nullable
-    goodsInfo = models.CharField(max_length=150, blank=True, null=True)  # Nullable
-    goodsDesc = models.CharField(max_length=150, blank=True, null=True)  # Nullable
-    category1 = models.CharField(max_length=30)
-    category2 = models.CharField(max_length=30)
-    category3 = models.CharField(max_length=30)
+    ratingCount = models.IntegerField(blank=True, null=True)  # Nullable
+    goodsInfo = models.TextField(blank=True, null=True)  # Nullable
+    goodsDesc = models.TextField(blank=True, null=True)  # Nullable
+    goodsImg = models.CharField(max_length=500)  # Not null
+
+    def __str__(self):
+        return self.goodsName  # 객체를 문자열로 표현할 때 상품명 표시
 
     class Meta:
         managed = False
         db_table = 'goods'
-
 
 
 class Orders(models.Model):
@@ -185,10 +185,10 @@ class SituationKeyword(models.Model):
         managed = False
         db_table = 'situationKeyword'
 
-class goodsKeyword(models.Model):
-    goodsKwKey = models.AutoField(primary_key=True)
-    ASIN = models.ForeignKey(Goods, on_delete=models.CASCADE, db_column='ASIN')
-    goodsKeyword = models.CharField(max_length=30)
+class GoodsKeyword(models.Model):
+    goodsKwKey = models.AutoField(primary_key=True)  # 기본 키, 자동 증가
+    ASIN = models.ForeignKey('Goods', on_delete=models.CASCADE, db_column='ASIN', to_field='ASIN')  # 외래 키
+    goodsKeyword = models.CharField(max_length=30)  # 키워드 필드
 
     class Meta:
         managed = False

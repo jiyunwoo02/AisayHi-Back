@@ -20,6 +20,18 @@ from .serializers import GoodsSerializer
 from .models import Orders
 from .serializers import OrdersSerializer
 
+
+import pandas as pd
+import random
+import os
+from django.conf import settings
+
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+
+
 # 회원가입 API: 아이디, 이름, 비밀번호
 @csrf_exempt
 def signup_api(request):
@@ -107,3 +119,154 @@ class GoodsViewSet(viewsets.ModelViewSet):
 class OrdersViewSet(viewsets.ModelViewSet):
     queryset = Orders.objects.all()
     serializer_class = OrdersSerializer
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os
+import pandas as pd
+import ast
+import random
+from django.conf import settings
+from django.http import JsonResponse
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# CSV 파일 경로 설정
+CSV_DIR = os.path.join(settings.BASE_DIR, 'pm/data/')
+
+# CSV 데이터 로드
+goods = pd.read_csv(os.path.join(CSV_DIR, 'goods.csv'), encoding='utf-8-sig')
+goodsKeyword = pd.read_csv(os.path.join(CSV_DIR, 'goodsKeyword.csv'), encoding='utf-8-sig')
+situation = pd.read_csv(os.path.join(CSV_DIR, 'situation.csv'), encoding='utf-8-sig')
+situationCategory = pd.read_csv(os.path.join(CSV_DIR, 'situationCategory.csv'), encoding='utf-8-sig')
+situationKeyword = pd.read_csv(os.path.join(CSV_DIR, 'situationKeyword.csv'), encoding='utf-8-sig')
+
+# ASIN 기준으로 goods와 goodsKeyword 병합
+merged_data = pd.merge(goods, goodsKeyword[['ASIN', 'goodsKeyword']], on='ASIN', how='left')
+
+# 안전한 키워드 처리 함수
+def safe_literal_eval(value):
+    try:
+        return ' '.join(ast.literal_eval(value)) if pd.notna(value) else ''
+    except (ValueError, SyntaxError):
+        return str(value)
+
+merged_data['keyword_str'] = merged_data['goodsKeyword'].apply(safe_literal_eval)
+
+# TF-IDF 벡터화
+tfidf = TfidfVectorizer()
+tfidf_matrix = tfidf.fit_transform(merged_data['keyword_str'])
+
+# 섹션 정의와 상황 키 매핑
+SECTIONS = [
+    {"name": "일반 섹션 1", "categories": ['사무용품', '사무실 꾸미기', '직장 생활'], "situationKeys": [17, 18, 19]},
+    {"name": "일반 섹션 2", "categories": ['사무용품', '사무실 꾸미기', '직장 생활'], "situationKeys": [20, 21, 22]},
+    {"name": "탕비실 섹션 3", "categories": ['식음료', '탕비실'], "situationKeys": [1, 2, 3]},
+    {"name": "탕비실 섹션 4", "categories": ['식음료', '탕비실'], "situationKeys": [4, 5, 6]}
+]
+
+# 상황 키를 통해 헤드라인과 키워드를 추출
+def get_situation_data(situation_key):
+    try:
+        row = situation[situation['situationKey'] == situation_key].iloc[0]
+        keywords = situationKeyword[situationKeyword['situationKey'] == situation_key]['situationKeyword'].tolist()
+        return {
+            'headline1': row['headline1'],
+            'headline2': row['headline2'],
+            'mainKeyword': row['mainKeyword'],
+            'keywords': keywords
+        }
+    except IndexError:
+        return None
+
+# 섹션에 맞는 추천을 생성
+def generate_section_recommendation(section, used_goods):
+    categories = [c.strip().lower() for c in section['categories']]
+    situation_keys = section['situationKeys']
+
+    for _ in range(10):  # 최대 10회 시도
+        situation_key = random.choice(situation_keys)
+        situation_data = get_situation_data(situation_key)
+
+        if not situation_data:
+            continue
+
+        filtered_data = merged_data[
+            merged_data['category1'].str.strip().str.lower().isin(categories) &
+            (~merged_data['goodsKey'].isin(used_goods))
+        ]
+
+        recommendations = recommend_products(filtered_data, used_goods)
+
+        if len(recommendations) == 12:
+            return {
+                'section': section["name"],
+                'headline1': situation_data['headline1'],
+                'headline2': situation_data['headline2'],
+                'mainKeyword': situation_data['mainKeyword'],
+                'recommendations': recommendations
+            }
+
+    return None
+
+# 유사도에 기반한 상품 추천
+def recommend_products(data, used_goods, num_recommendations=12):
+    if data.empty:
+        return []
+
+    index = random.choice(data.index)
+    cosine_sim = cosine_similarity(tfidf_matrix[index], tfidf_matrix).flatten()
+    similar_indices = cosine_sim.argsort()[::-1][1:num_recommendations + 1]
+    similar_indices = [i for i in similar_indices if i in data.index]
+
+    if len(similar_indices) < num_recommendations:
+        additional_indices = list(data.index.difference(similar_indices))
+        random.shuffle(additional_indices)
+        similar_indices += additional_indices[:num_recommendations - len(similar_indices)]
+
+    recommendations = data.loc[similar_indices][[
+        'goodsKey', 'ASIN', 'goodsName', 'originalPrice', 'goodsImg'
+    ]].copy()
+
+    recommendations['similarity'] = cosine_sim[similar_indices]
+
+    # DataFrame을 리스트로 변환하여 반환
+    return recommendations.to_dict(orient='records')
+
+# 추천 API
+def recommend(request):
+    recommendations = []
+    used_goods = set()
+
+    for section in SECTIONS:
+        section_recommendation = generate_section_recommendation(section, used_goods)
+
+        if section_recommendation:
+            # section_recommendation 구조 확인
+            if not isinstance(section_recommendation["recommendations"], list):
+                print(f"Error: Invalid recommendations format - {section_recommendation['recommendations']}")
+                continue  # 올바르지 않은 경우 건너뜁니다.
+
+            # 사용된 상품 기록
+            try:
+                used_goods.update([item["goodsKey"] for item in section_recommendation["recommendations"]])
+            except KeyError as e:
+                print(f"Error: Missing key in recommendation item - {e}")
+                continue  # 키가 없는 경우 건너뜁니다.
+
+            recommendations.append(section_recommendation)
+
+    if not recommendations:
+        return JsonResponse({'error': 'No recommendations available'}, status=404)
+
+    return JsonResponse({'recommendations': recommendations})
