@@ -124,6 +124,14 @@ class OrdersViewSet(viewsets.ModelViewSet):
 
 
 
+
+
+
+
+
+
+
+
 import os
 import pandas as pd
 import ast
@@ -143,105 +151,122 @@ situation = pd.read_csv(os.path.join(CSV_DIR, 'situation.csv'), encoding='utf-8-
 situationCategory = pd.read_csv(os.path.join(CSV_DIR, 'situationCategory.csv'), encoding='utf-8-sig')
 situationKeyword = pd.read_csv(os.path.join(CSV_DIR, 'situationKeyword.csv'), encoding='utf-8-sig')
 
-# ASIN을 기준으로 goods와 goodsKeyword 병합
+# ASIN 기준으로 goods와 goodsKeyword 병합
 merged_data = pd.merge(goods, goodsKeyword[['ASIN', 'goodsKeyword']], on='ASIN', how='left')
 
-# 안전한 키워드 변환 함수
+# 안전한 키워드 처리 함수
 def safe_literal_eval(value):
     try:
         return ' '.join(ast.literal_eval(value)) if pd.notna(value) else ''
     except (ValueError, SyntaxError):
         return str(value)
 
-# 'goodsKeyword' 열 처리
 merged_data['keyword_str'] = merged_data['goodsKeyword'].apply(safe_literal_eval)
 
 # TF-IDF 벡터화
 tfidf = TfidfVectorizer()
 tfidf_matrix = tfidf.fit_transform(merged_data['keyword_str'])
 
-# 추천 섹션 목록 정의
+# 섹션 정의와 상황 키 매핑
 SECTIONS = [
-    {"name": "일반 추천", "categories": ["식음료"], "exclude": True},
-    {"name": "일반 추천 2", "categories": ["식음료"], "exclude": True},
-    {"name": "탕비실 추천", "categories": ["식음료"], "exclude": False},
-    {"name": "탕비실 추천 2", "categories": ["식음료"], "exclude": False},
+    {"name": "일반 섹션 1", "categories": ['사무용품', '사무실 꾸미기', '직장 생활'], "situationKeys": [17, 18, 19]},
+    {"name": "일반 섹션 2", "categories": ['사무용품', '사무실 꾸미기', '직장 생활'], "situationKeys": [20, 21, 22]},
+    {"name": "탕비실 섹션 3", "categories": ['식음료', '탕비실'], "situationKeys": [1, 2, 3]},
+    {"name": "탕비실 섹션 4", "categories": ['식음료', '탕비실'], "situationKeys": [4, 5, 6]}
 ]
 
-# 상황과 카테고리를 매핑하는 함수
-def get_situation_with_category(situation_key):
-    situation_row = situation[situation['situationKey'] == situation_key].iloc[0]
-    category_row = situationCategory[situationCategory['situationCateKey'] == situation_row['situationCatekey']].iloc[0]
+# 상황 키를 통해 헤드라인과 키워드를 추출
+def get_situation_data(situation_key):
+    try:
+        row = situation[situation['situationKey'] == situation_key].iloc[0]
+        keywords = situationKeyword[situationKeyword['situationKey'] == situation_key]['situationKeyword'].tolist()
+        return {
+            'headline1': row['headline1'],
+            'headline2': row['headline2'],
+            'mainKeyword': row['mainKeyword'],
+            'keywords': keywords
+        }
+    except IndexError:
+        return None
 
-    return {
-        'headline1': situation_row['headline1'],
-        'headline2': situation_row['headline2'],
-        'mainKeyword': situation_row['mainKeyword'],
-        'categories': [category_row['situationCategory1'], category_row['situationCategory2']]
-    }
+# 섹션에 맞는 추천을 생성
+def generate_section_recommendation(section, used_goods):
+    categories = [c.strip().lower() for c in section['categories']]
+    situation_keys = section['situationKeys']
 
-# 유사 상품 추천 함수 정의 (12개 추천)
-def recommend_products(data, index, num_recommendations=12, category_filter=None):
-    cosine_sim = cosine_similarity(tfidf_matrix[index], tfidf_matrix).flatten()
-    similar_indices = cosine_sim.argsort()[::-1][1:num_recommendations + 1]
+    for _ in range(10):  # 최대 10회 시도
+        situation_key = random.choice(situation_keys)
+        situation_data = get_situation_data(situation_key)
 
-    if category_filter:
-        similar_indices = [
-            i for i in similar_indices if data.iloc[i]['category1'] in category_filter
+        if not situation_data:
+            continue
+
+        filtered_data = merged_data[
+            merged_data['category1'].str.strip().str.lower().isin(categories) &
+            (~merged_data['goodsKey'].isin(used_goods))
         ]
 
-    recommendations = data.iloc[similar_indices][[
-        'goodsKey', 'ASIN', 'goodsName', 'originalPrice',
-        'goodsInfo', 'goodsDesc', 'goodsImg'
+        recommendations = recommend_products(filtered_data, used_goods)
+
+        if len(recommendations) == 12:
+            return {
+                'section': section["name"],
+                'headline1': situation_data['headline1'],
+                'headline2': situation_data['headline2'],
+                'mainKeyword': situation_data['mainKeyword'],
+                'recommendations': recommendations
+            }
+
+    return None
+
+# 유사도에 기반한 상품 추천
+def recommend_products(data, used_goods, num_recommendations=12):
+    if data.empty:
+        return []
+
+    index = random.choice(data.index)
+    cosine_sim = cosine_similarity(tfidf_matrix[index], tfidf_matrix).flatten()
+    similar_indices = cosine_sim.argsort()[::-1][1:num_recommendations + 1]
+    similar_indices = [i for i in similar_indices if i in data.index]
+
+    if len(similar_indices) < num_recommendations:
+        additional_indices = list(data.index.difference(similar_indices))
+        random.shuffle(additional_indices)
+        similar_indices += additional_indices[:num_recommendations - len(similar_indices)]
+
+    recommendations = data.loc[similar_indices][[
+        'goodsKey', 'ASIN', 'goodsName', 'originalPrice', 'goodsImg'
     ]].copy()
+
     recommendations['similarity'] = cosine_sim[similar_indices]
-    return recommendations
 
-# 섹션별 추천 생성 함수
-def generate_section_recommendation(section):
-    categories = section["categories"]
-    exclude = section["exclude"]
-
-    # 랜덤 인덱스 선택 및 상황 데이터 가져오기
-    situation_key = random.choice(situation['situationKey'].unique())
-    situation_data = get_situation_with_category(situation_key)
-
-    # 카테고리 필터링 설정
-    category_filter = categories if not exclude else merged_data['category1'].unique().tolist()
-    if exclude:
-        category_filter = [c for c in category_filter if c not in categories]
-
-    # 추천 생성
-    index = random.randint(0, len(merged_data) - 1)
-    recommendations = recommend_products(merged_data, index, 12, category_filter)
-
-    return {
-        'section': section["name"],
-        'headline1': situation_data['headline1'],
-        'headline2': situation_data['headline2'],
-        'mainKeyword': situation_data['mainKeyword'],
-        'recommendations': recommendations.to_dict(orient='records')
-    }
+    # DataFrame을 리스트로 변환하여 반환
+    return recommendations.to_dict(orient='records')
 
 # 추천 API
 def recommend(request):
-    # 4개의 섹션에 대해 각각 추천 생성
     recommendations = []
-    used_indices = set()  # 중복 방지를 위한 인덱스 추적
+    used_goods = set()
 
     for section in SECTIONS:
-        while True:
-            section_recommendation = generate_section_recommendation(section)
+        section_recommendation = generate_section_recommendation(section, used_goods)
 
-            # 추천이 비어있지 않고, 인덱스가 중복되지 않으면 추가
-            if section_recommendation["recommendations"]:
-                index = section_recommendation["recommendations"][0]['goodsKey']
-                if index not in used_indices:
-                    used_indices.add(index)
-                    recommendations.append(section_recommendation)
-                    break
+        if section_recommendation:
+            # section_recommendation 구조 확인
+            if not isinstance(section_recommendation["recommendations"], list):
+                print(f"Error: Invalid recommendations format - {section_recommendation['recommendations']}")
+                continue  # 올바르지 않은 경우 건너뜁니다.
 
-    # JSON 응답 반환
-    return JsonResponse({
-        'recommendations': recommendations
-    })
+            # 사용된 상품 기록
+            try:
+                used_goods.update([item["goodsKey"] for item in section_recommendation["recommendations"]])
+            except KeyError as e:
+                print(f"Error: Missing key in recommendation item - {e}")
+                continue  # 키가 없는 경우 건너뜁니다.
+
+            recommendations.append(section_recommendation)
+
+    if not recommendations:
+        return JsonResponse({'error': 'No recommendations available'}, status=404)
+
+    return JsonResponse({'recommendations': recommendations})
