@@ -3,9 +3,6 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework import viewsets, filters
 
-import django_filters
-from django_filters.rest_framework import DjangoFilterBackend
-
 
 # 사용자
 from django.contrib.auth import authenticate, login
@@ -21,14 +18,17 @@ from .models import Orders
 from .serializers import OrdersSerializer
 
 
-import pandas as pd
-import random
-import os
 from django.conf import settings
-
-import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 
+
+# 추천
+import os
+import pandas as pd
+import ast
+import random
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 
@@ -121,25 +121,7 @@ class OrdersViewSet(viewsets.ModelViewSet):
     serializer_class = OrdersSerializer
 
 
-
-
-
-
-
-
-
-
-
-
-
-import os
-import pandas as pd
-import ast
-import random
-from django.conf import settings
-from django.http import JsonResponse
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+# 추천
 
 # CSV 파일 경로 설정
 CSV_DIR = os.path.join(settings.BASE_DIR, 'pm/data/')
@@ -201,6 +183,7 @@ def generate_section_recommendation(section, used_goods):
         if not situation_data:
             continue
 
+        # 사용된 상품 제외한 데이터 필터링
         filtered_data = merged_data[
             merged_data['category1'].str.strip().str.lower().isin(categories) &
             (~merged_data['goodsKey'].isin(used_goods))
@@ -209,6 +192,9 @@ def generate_section_recommendation(section, used_goods):
         recommendations = recommend_products(filtered_data, used_goods)
 
         if len(recommendations) == 12:
+            # 추천된 상품의 goodsKey를 기록
+            used_goods.update([item['goodsKey'] for item in recommendations])
+
             return {
                 'section': section["name"],
                 'headline1': situation_data['headline1'],
@@ -219,7 +205,6 @@ def generate_section_recommendation(section, used_goods):
 
     return None
 
-# 유사도에 기반한 상품 추천
 def recommend_products(data, used_goods, num_recommendations=12):
     if data.empty:
         return []
@@ -227,8 +212,11 @@ def recommend_products(data, used_goods, num_recommendations=12):
     index = random.choice(data.index)
     cosine_sim = cosine_similarity(tfidf_matrix[index], tfidf_matrix).flatten()
     similar_indices = cosine_sim.argsort()[::-1][1:num_recommendations + 1]
-    similar_indices = [i for i in similar_indices if i in data.index]
 
+    # 중복되지 않는 상품만 선택
+    similar_indices = [i for i in similar_indices if i in data.index and data.loc[i, 'goodsKey'] not in used_goods]
+
+    # 추천 개수 부족 시 추가 상품 선택
     if len(similar_indices) < num_recommendations:
         additional_indices = list(data.index.difference(similar_indices))
         random.shuffle(additional_indices)
@@ -243,7 +231,6 @@ def recommend_products(data, used_goods, num_recommendations=12):
     # DataFrame을 리스트로 변환하여 반환
     return recommendations.to_dict(orient='records')
 
-# 추천 API
 def recommend(request):
     recommendations = []
     used_goods = set()
@@ -252,18 +239,6 @@ def recommend(request):
         section_recommendation = generate_section_recommendation(section, used_goods)
 
         if section_recommendation:
-            # section_recommendation 구조 확인
-            if not isinstance(section_recommendation["recommendations"], list):
-                print(f"Error: Invalid recommendations format - {section_recommendation['recommendations']}")
-                continue  # 올바르지 않은 경우 건너뜁니다.
-
-            # 사용된 상품 기록
-            try:
-                used_goods.update([item["goodsKey"] for item in section_recommendation["recommendations"]])
-            except KeyError as e:
-                print(f"Error: Missing key in recommendation item - {e}")
-                continue  # 키가 없는 경우 건너뜁니다.
-
             recommendations.append(section_recommendation)
 
     if not recommendations:

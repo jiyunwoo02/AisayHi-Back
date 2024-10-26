@@ -17,10 +17,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-4d9t^$c#jsf#ca*1l&xvo-jiw%zume&78t8ni4$#0x%-p!ot)^'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['theportermarket.com', 'localhost']
+DEBUG = False
 
 # Application definition
 # 자신이 설정한 app명으로 지정: pm
@@ -113,7 +112,10 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+import os
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
