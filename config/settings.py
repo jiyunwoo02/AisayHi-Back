@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-4d9t^$c#jsf#ca*1l&xvo-jiw%zume&78t8ni4$#0x%-p!ot)^'
 
 
-ALLOWED_HOSTS = ['theportermarket.com', 'localhost']
+ALLOWED_HOSTS = ['localhost']
 DEBUG = False
 
 # Application definition
